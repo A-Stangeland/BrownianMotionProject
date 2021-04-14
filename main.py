@@ -5,31 +5,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 
-def test_plot1():
-    x = np.zeros(2)
-    point = plt.plot(x, 'b.')[0]
-    plt.xlim([-20,20])
-    plt.ylim([-20,20])
-    for i in range(1000):
-        u = npr.normal(0,1,2)
-        c = npr.uniform(0,1,3)#npr.randint(0, 256, 3)
-        x += u
-        print(x)
-        plt.plot(x[0], x[1], '.', color=c)
-        #point.set_data(x)
-        #point.set_color(c)
-        plt.pause(0.01)
-    plt.show()
-
-def test_plot2():
-    U = npr.normal(0, 1, (1000, 2))
-    #U = np.ones((10,2))
-    X = np.cumsum(U, axis=0)
-    print(X)
-    plt.plot(X[:,0], X[:,1])
-    plt.show()
-    print(X.shape)
-
 def wiener_path(seed=None):
     rng = default_rng(seed)
     N = 1000
@@ -65,7 +40,6 @@ def wiener_path(seed=None):
     plt.tight_layout()
     plt.show()
 
-
 def KLBM(N, T=1):
     npr.seed(271)
     t = np.linspace(0, T, 1000)
@@ -80,6 +54,26 @@ def KLBM(N, T=1):
     plt.ylim([-2, 0.5])
     for i in range(1, N):
         line.set_data(t, np.sum(W[:i,:], axis=0))
+        text.set_text('n = %s' % i)
+        plt.pause(1/i)
+    plt.show()
+
+def KLBM2(N, T=1):
+    #npr.seed(271)
+    t = np.linspace(0, T, 1000)
+    k = (2*np.arange(N) + 1)[:,None]
+    #Z = npr.normal(size=(N,1))
+    phi = 2*np.sqrt(2*T)*np.sin(k*np.pi*t[None,:]/(2*T))/(k*np.pi)
+    W1 = phi * npr.normal(size=(N,1))
+    W2 = phi * npr.normal(size=(N,1))
+    #plt.figure(figsize=(20,10))
+    line = plt.plot([],[], lw=0.7)[0]
+    text = plt.text(1.2, 1.2, '', fontweight='bold', bbox=dict(facecolor='gold', alpha=0.5))
+    a = 1.5
+    plt.xlim([-a*T,a*T])
+    plt.ylim([-a*T, a*T])
+    for i in range(1, N):
+        line.set_data(np.sum(W1[:i,:], axis=0), np.sum(W2[:i,:], axis=0))
         text.set_text('n = %s' % i)
         plt.pause(1/i)
     plt.show()
@@ -137,6 +131,76 @@ def GBM(N, T=1, x=1, r=1.5, sig=0.1):
 
     plt.show()
 
+def GBM2():
+    rng = default_rng()
+    T = 1
+    N = 200
+    dt = T / N
+    K = 2000
+    Z = rng.standard_normal((K, N))
+    W = np.cumsum(Z*np.sqrt(dt), axis=1)
+
+    t = np.linspace(0, T, N)
+    x=1
+    r = 2
+    sig = 0.5
+    S = x * np.exp((r-sig**2/2)*t[None,:] + sig*W)
+    q1, q2 = 0.05, 0.95
+
+    nbins = 100
+    Heat = np.zeros((nbins, N))
+    m, M = np.quantile(S, [q1, q2])
+    hist_func = lambda X: np.histogram(X, bins=nbins, range=[m, M])[0]
+    Heat = np.apply_along_axis(hist_func, 0, S)
+
+
+    fig = plt.figure(0)
+    ax = fig.add_subplot(111)
+    plt.subplots_adjust(bottom=0.25)
+    im = plt.imshow(Heat[::-1]**(0.5), cmap='inferno')
+    plt.axis('off')
+    axcolor = 'lightgoldenrodyellow'
+    axr = plt.axes([0.2, 0.1, 0.3, 0.03], facecolor=axcolor)
+    axsig = plt.axes([0.6, 0.1, 0.3, 0.03], facecolor=axcolor)
+    rslider = Slider(axr, '$r$', 1, 5, valinit=r)
+    sigslider = Slider(axsig, r'$\sigma$', 0.1, 4, valinit=sig)
+
+    def update(val):
+        r = rslider.val
+        sig = sigslider.val
+        S = x * np.exp((r-sig**2/2)*t[None,:] + sig*W)
+        m, M = np.quantile(S, [q1, q2])
+        hist_func = lambda X: np.histogram(X, bins=nbins, range=[m, M])[0]
+        Heat = np.apply_along_axis(hist_func, 0, S)
+        im.set_data(Heat[::-1]**(0.5))
+        fig.canvas.draw_idle()
+    
+    rslider.on_changed(update)
+    sigslider.on_changed(update)
+
+    resetax = plt.axes([0.8, 0.025, 0.1, 0.04])
+    button = Button(resetax, 'Reset', color=axcolor, hovercolor='0.975')
+
+    def reset(event):
+        rslider.reset()
+        sigslider.reset()
+        npr.seed()
+        Z = rng.standard_normal((K, N))
+        W = np.cumsum(Z*np.sqrt(dt), axis=1)
+        r = rslider.val
+        sig = sigslider.val
+        S = x * np.exp((r-sig**2/2)*t[None,:] + sig*W)
+        Heat = np.zeros((nbins, N))
+        m, M = np.quantile(S, [q1, q2])
+        hist_func = lambda X: np.histogram(X, bins=nbins, range=[m, M])[0]
+        Heat = np.apply_along_axis(hist_func, 0, S)
+        im.set_data(Heat[::-1]**(0.5))
+        fig.canvas.draw_idle()
+        
+
+    button.on_clicked(reset)
+    plt.show()
+
 def random_walk():
     rng = default_rng()
     N = 1000
@@ -172,7 +236,6 @@ def BM_spectral_function(kmax, T=1, seed=None):
     phi = lambda t: 2*np.sqrt(2*T)*np.sin(k*np.pi*t[None,:]/(2*T))/(k*np.pi)
     W = lambda t: np.sum(Z*phi(t), axis=0)
     return W, k[:,0]/(4*T), np.abs(Z*2*np.sqrt(2*T)/(k*np.pi))[:,0]
-
 
 def brownian_noise():
     BM_function, freq, amp = BM_spectral_function(1000)
@@ -216,24 +279,6 @@ def spectral_BM():
         ax.spines["bottom"].set_bounds((0, 1))
     plt.tight_layout()
     plt.show()
-
-def triang(t):
-    T = np.clip(t, 0, 1)
-    T = 1 - 2*np.abs(0.5 - T)
-    return T
-
-def wavelet_construction():
-    N = 100
-    n = np.arange(N)
-    j = np.zeros_like(n)
-    j[2:] = np.log2(n[2:]).astype(int)
-    print(j)
-    j2 = 2.**j
-    k = n - j2
-    t = np.linspace(0, 1, 2*N)
-    T = j2[None,:] * t[:,None] - k[None, :]
-    print(T.shape)
-
 
 def nowhere_diff():
     rng = default_rng()
@@ -280,6 +325,38 @@ def nowhere_diff2():
     #ax.set_ylabel(r'$\frac{| B_{t + \Delta t} - B_t |}{\Delta t}$')
     #ticks = [k*K*dt/5 for k in range(6)]
     #plt.xticks(ticks=ticks, labels=['{:.0e}'.format(x) for x in ticks])
+    plt.tight_layout()
+    plt.show()
+
+def heat_map():
+    rng = default_rng()
+    T = 1
+    N = 500
+    dt = T / N
+    K = 20000
+    Z = rng.standard_normal((K, N))
+    W = np.cumsum(Z*np.sqrt(dt), axis=1)
+
+    t = np.linspace(0, T, N)
+    x=1
+    r = 2
+    sig = 0.5
+    S = x * np.exp((r-sig**2/2)*t[None,:] + sig*W)
+
+    nbins = 300
+    Heat = np.zeros((nbins, N))
+    #m, M = np.quantile(S, [0, 0.9])
+    #hist_func = lambda X: np.histogram(X, bins=nbins, range=[m, M])[0]
+    #Heat = np.apply_along_axis(hist_func, 0, S)
+
+
+    M = np.quantile(np.abs(W), 0.99)
+    hist_func = lambda X: np.histogram(X, bins=nbins, range=[-1.2*M, 1.2*M])[0]
+    Heat = np.apply_along_axis(hist_func, 0, W)
+    #Heat = Heat / np.max(Heat, axis=0)[None,:]
+    
+    plt.imshow(Heat, cmap='inferno')
+    plt.axis('off')
     plt.tight_layout()
     plt.show()
 
@@ -389,4 +466,31 @@ def brownian_path():
     plt.ylim([-1.1, 1.6])
     plt.yticks(np.arange(-1, 2, 0.5))
     plt.tight_layout()
+    plt.show()
+
+def sde_integration():
+    s0 = 1
+    r = 1.5
+    sigma = .2
+    N = 1000
+    K = 100
+    t = np.linspace(0, 1, N)
+    dt = t[1]-t[0]
+    #Z = np.sqrt(dt)*npr.standard_normal((K, N))
+    #W1 = np.cumsum(Z, axis=1)
+    W1 = np.sqrt(dt)*np.cumsum(npr.standard_normal((K, N)), axis=1)
+    S1 = s0*np.exp((r-sigma**2/2)*t +sigma*W1)
+
+    Z = np.sqrt(dt)*npr.standard_normal((K, N))
+    S2 = np.zeros_like(S1)
+    S2[:,0] = s0
+    for i in range(N-1):
+        S2[:,i+1] = S2[:,i] + r*S2[:,i]*dt + sigma*S2[:,i]*Z[:,i]
+
+    plot = plt.plot
+    for k in range(K):
+        plot(t, S1[k], color='blue', lw=0.1)
+        plot(t, S2[k], color='orange', lw=0.1)
+    plot(t, np.mean(S1, axis=0), '--', color='black', lw=1)
+    plot(t, np.mean(S2, axis=0), '--', color='red', lw=1)
     plt.show()
