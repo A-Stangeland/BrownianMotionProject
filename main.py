@@ -390,5 +390,3 @@ def brownian_path():
     plt.yticks(np.arange(-1, 2, 0.5))
     plt.tight_layout()
     plt.show()
-
-brownian_particles()
