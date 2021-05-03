@@ -318,14 +318,15 @@ def nowhere_diff2():
     B = np.mean(np.abs(rng.standard_normal((n, K))), axis=0) * np.sqrt(dt)
     dB = B / dt
 
-    ax = plt.subplot()
+    ax = plt.subplot() #plt.axes((0.2, 0, 0.7, .9))
     ax.semilogy(dt, dB, 'k', lw=0.7)
     ax.set_xlabel(r'$\Delta t$')
-    ax.set_ylabel(r'$| B_{t + \Delta t} - B_t | / \Delta t$')
-    #ax.set_ylabel(r'$\frac{| B_{t + \Delta t} - B_t |}{\Delta t}$')
+    #ax.set_ylabel(r'$| B_{t + \Delta t} - B_t | / \Delta t$')
+    ax.set_ylabel(r'$\frac{| B_{t + \Delta t} - B_t |}{\Delta t}$', labelpad=30, fontsize=14, rotation='horizontal')
     #ticks = [k*K*dt/5 for k in range(6)]
     #plt.xticks(ticks=ticks, labels=['{:.0e}'.format(x) for x in ticks])
-    plt.tight_layout()
+    plt.subplots_adjust(left=0.2, right=0.8, top=.9, bottom=.1)
+    #plt.tight_layout()
     plt.show()
 
 def heat_map():
@@ -470,27 +471,50 @@ def brownian_path():
 
 def sde_integration():
     s0 = 1
-    r = 1.5
-    sigma = .2
-    N = 1000
+    r = 2
+    sigma = .3
+    N = 100
     K = 100
     t = np.linspace(0, 1, N)
     dt = t[1]-t[0]
-    #Z = np.sqrt(dt)*npr.standard_normal((K, N))
-    #W1 = np.cumsum(Z, axis=1)
     W1 = np.sqrt(dt)*np.cumsum(npr.standard_normal((K, N)), axis=1)
     S1 = s0*np.exp((r-sigma**2/2)*t +sigma*W1)
 
-    Z = np.sqrt(dt)*npr.standard_normal((K, N))
+    Z2 = np.sqrt(dt)*npr.standard_normal((K, N))
     S2 = np.zeros_like(S1)
     S2[:,0] = s0
     for i in range(N-1):
-        S2[:,i+1] = S2[:,i] + r*S2[:,i]*dt + sigma*S2[:,i]*Z[:,i]
+        S2[:,i+1] = S2[:,i] + r*S2[:,i]*dt + sigma*S2[:,i]*Z2[:,i]
 
-    plot = plt.plot
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    plt.subplot(1,2,1)
     for k in range(K):
-        plot(t, S1[k], color='blue', lw=0.1)
-        plot(t, S2[k], color='orange', lw=0.1)
-    plot(t, np.mean(S1, axis=0), '--', color='black', lw=1)
-    plot(t, np.mean(S2, axis=0), '--', color='red', lw=1)
+        plt.plot(t, S1[k], color=colors[0], lw=0.1)
+        plt.plot(t, S2[k], color=colors[1], lw=0.1)
+    plt.plot(t, np.mean(S1, axis=0), '--', color='darkblue', lw=1)
+    plt.plot(t, np.mean(S2, axis=0), '--', color='saddlebrown', lw=1)
+    plt.xlabel('t')
+
+
+    t = np.linspace(0, 10, N)
+    dt = t[1]-t[0]
+    W1 = np.sqrt(dt)*np.cumsum(npr.standard_normal((K, N)), axis=1)
+    S1 = s0*np.exp((r-sigma**2/2)*t +sigma*W1)
+
+    Z2 = np.sqrt(dt)*npr.standard_normal((K, N))
+    S2 = np.zeros_like(S1)
+    S2[:,0] = s0
+    for i in range(N-1):
+        S2[:,i+1] = S2[:,i] + r*S2[:,i]*dt + sigma*S2[:,i]*Z2[:,i]
+
+    plt.subplot(1,2,2)
+    for k in range(K):
+        plt.semilogy(t, S1[k], color=colors[0], lw=0.1)
+        plt.semilogy(t, S2[k], color=colors[1], lw=0.1)
+    plt.semilogy(t, np.mean(S1, axis=0), '--', color='darkblue', lw=1)
+    plt.semilogy(t, np.mean(S2, axis=0), '--', color='saddlebrown', lw=1)
+    plt.xlabel('t')
+
     plt.show()
+
+sde_integration()
