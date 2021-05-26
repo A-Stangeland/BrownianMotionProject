@@ -4,6 +4,7 @@ from numpy.random import default_rng
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
+from matplotlib import animation, rc
 
 def wiener_path(seed=None):
     rng = default_rng(seed)
@@ -326,7 +327,8 @@ def nowhere_diff2():
     #ticks = [k*K*dt/5 for k in range(6)]
     #plt.xticks(ticks=ticks, labels=['{:.0e}'.format(x) for x in ticks])
     plt.subplots_adjust(left=0.2, right=0.8, top=.9, bottom=.1)
-    #plt.tight_layout()
+    plt.tight_layout()
+    #plt.savefig('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/nodiff.png', dpi=400, transparent=True)
     plt.show()
 
 def heat_map():
@@ -412,15 +414,17 @@ def brownian_particles():
     xlim = 1.61803398875
     ylim = 1
     N = 10000
-    K = 10
+    K = 8
     T = 1
     dt = T / N
     X1 = rng.standard_normal((N, K))
     X2 = rng.standard_normal((N, K))
     W1 = np.zeros((N+1, K))
     W2 = np.zeros((N+1, K))
-    W1[0] = rng.uniform(-xlim, xlim, size=K)
-    W2[0] = rng.uniform(-ylim, ylim, size=K)
+    #W1[0] = rng.uniform(-xlim, xlim, size=K)
+    #W2[0] = rng.uniform(-ylim, ylim, size=K)
+    W1[0] = np.array([-.8*xlim, 0, .8*xlim, .8*xlim, .8*xlim, 0, -.8*xlim, -.8*xlim])
+    W2[0] = np.array([.8*ylim, .8*ylim, .8*ylim, 0, -.8*ylim, -.8*ylim, -.8*ylim, 0])
     
     for n in range(N):
         W1[n+1] = np.where(np.abs(W1[n] + np.sqrt(dt)*X1[n]) < xlim, W1[n] + np.sqrt(dt)*X1[n], W1[n] - np.sqrt(dt)*X1[n])
@@ -466,6 +470,36 @@ def brownian_path():
 
     plt.ylim([-1.1, 1.6])
     plt.yticks(np.arange(-1, 2, 0.5))
+    plt.tight_layout()
+    plt.show()
+
+def geometric_brownian_motion():
+    #plt.rc('text', usetex = True)   
+    rng = default_rng(73)
+    N = 10000
+    K = 3
+    T = 1
+    dt = T / N
+    t = np.linspace(0, T, N+1)
+    X = rng.standard_normal((K, N))
+    #X = np.random.normal(size=(K,N))
+    W = np.zeros((K,N+1))
+    W[:,1:] = np.cumsum(X*np.sqrt(dt), axis=1)
+
+    S0 = 50
+    r = .1
+    sig = 0.2
+    S = S0 * np.exp((r - sig**2/2)*t - sig*W)
+    
+    plt.figure(figsize=(5*1.61803398875, 5))
+    for k in range(K):
+        plt.plot(t, S[k], lw=0.7)
+
+    #plt.ylim([-1.1, 1.6])
+    #plt.yticks(np.arange(-1, 2, 0.5))
+    fs = 12
+    plt.xlabel('$t$', fontdict={'size':fs})
+    plt.ylabel('$S_t$', fontdict={'size':fs})
     plt.tight_layout()
     plt.show()
 
@@ -517,4 +551,366 @@ def sde_integration():
 
     plt.show()
 
-sde_integration()
+def random_walk_anim():
+    N = 10000
+    #dt = T / N
+    #t = np.linspace(0, 1, N+1)
+    X = 2 * np.random.randint(2, size=N) - 1
+    W = np.zeros(N+1)
+    W[1:] = np.cumsum(X) / np.sqrt(N)
+    t = np.arange(N+1)
+
+    fig, ax = plt.subplots()
+    line = ax.plot([], [], color='black', lw=0.7)[0]
+    ax.set_yticks([])
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.set_xlim([0, N+1])
+    ax.set_ylim([np.min(W), np.max(W)])
+    #m, M = np.minimum.accumulate(W), np.maximum.accumulate(W)
+    for k in range(N+1):
+        #matplotlib.rcParams.update({'font.size': 8})
+        line.set_data(t[:k], W[:k])
+        #ax.set_xlim([0, t[k]])
+        #ax.set_ylim([1.1*m[k], 1.1*M[k]])
+        #ax.spines["bottom"].set_bounds((0, 1))
+        #plt.axis('off')
+        plt.pause(0.0001)
+    plt.tight_layout()
+    plt.show()
+
+def random_walk_mult_anim():
+    N = 10000
+    K = 10
+    #dt = T / N
+    #t = np.linspace(0, 1, N+1)
+    X = 2 * np.random.randint(2, size=(N,K)) - 1
+    W = np.zeros((N+1, K))
+    W[1:] = np.cumsum(X, axis=0) / np.sqrt(N)
+    t = np.arange(N+1)
+
+    fig, ax = plt.subplots()
+    lines = []
+    for k in range(K):
+        lines.append(ax.plot([], [], lw=0.3)[0])
+    ax.set_yticks([])
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.set_xlim([0, N+1])
+    ax.set_ylim([np.min(W), np.max(W)])
+    #m, M = np.minimum.accumulate(W), np.maximum.accumulate(W)
+    for n in range(N+1):
+        #matplotlib.rcParams.update({'font.size': 8})
+        for k in range(K):
+            lines[k].set_data(t[:n], W[:n, k])
+        #ax.set_xlim([0, t[k]])
+        #ax.set_ylim([1.1*m[k], 1.1*M[k]])
+        #ax.spines["bottom"].set_bounds((0, 1))
+        #plt.axis('off')
+        plt.pause(0.0001)
+    plt.tight_layout()
+    plt.show()
+
+def random_walk_points():
+    N = 12
+    np.random.seed(69)
+    X = 2 * np.random.randint(2, size=N) - 1
+    W = np.zeros(N+1)
+    W[1:] = np.cumsum(X)
+    t = np.arange(N+1)
+
+    for n in range(1, N):
+        scale = 3
+        fig, ax = plt.subplots(figsize=((scale*1.61803398875, scale)))
+        ax.plot(W[:n], 'o', color='black')
+        ax.set_xticks([])
+        ax.set_yticks(np.arange(-2,3))
+        ax.spines["top"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        #ax.spines["left"].set_visible(False)
+        ax.spines["left"].set_bounds((-2, 2))
+        ax.set_xlim([-.2, N-.9])
+        a = 1.1
+        ax.set_ylim([a*-2, a*2])
+        plt.grid(linestyle='--')
+        plt.tight_layout()
+        plt.savefig('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/rand_walk/fig%d.png' % n, dpi=400, transparent=True)
+        #plt.show()
+    
+    scale = 3
+    fig, ax = plt.subplots(figsize=((scale*1.61803398875, scale)))
+    ax.plot(W[:n], 'o', color='black')
+    ax.plot(W[:n], color='black')
+    ax.set_xticks([])
+    ax.set_yticks(np.arange(-2,3))
+    ax.spines["top"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    #ax.spines["left"].set_visible(False)
+    ax.spines["left"].set_bounds((-2, 2))
+    ax.set_xlim([-.2, N-.9])
+    a = 1.1
+    ax.set_ylim([a*-2, a*2])
+    plt.grid(linestyle='--')
+    plt.tight_layout()
+    plt.savefig('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/rand_walk/fig%d.png' % N, dpi=400, transparent=True)
+    #plt.show()
+
+def random_walk_pres():
+    N = 10000
+    np.random.seed(9999)
+    X = np.random.randint(2, size=N)*2 - 1
+    W = np.zeros(N+1)
+    W[1:] = np.cumsum(X)
+    for i, n in enumerate((10, 50, 100, 500, 1000, 10000)):
+        #matplotlib.rcParams.update({'font.size': 8})
+        scale = 4
+        #fig, ax = plt.subplots(figsize=((scale*1.61803398875, scale)))
+        fig, ax = plt.subplots(figsize=((scale*2, scale)))
+        #ax = plt.subplot(3, 2, i+1)
+        ax.plot(W[:n+1], color='black', lw=.8)
+        #ax.set_ylim([1.1*m, 1.1*M])
+        ax.set_title('n=%d' % n)
+        ax.set_yticks([])
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["bottom"].set_bounds((0, n))
+        plt.tight_layout()
+        plt.savefig('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/sim_rand_walk/fig%d.png' % n, dpi=400, transparent=True)
+        #plt.show()
+
+def KL_pres():
+    N = 10000
+    np.random.seed(9999)
+    T = 1
+    npr.seed(271)
+    t = np.linspace(0, T, 1000)
+    k = (2*np.arange(N) + 1)[:,None]
+    Z = npr.normal(size=(N,1))
+    phi = 2*np.sqrt(2*T)*np.sin(k*np.pi*t[None,:]/(2*T))/(k*np.pi)
+    W = Z * phi
+
+    for i, n in enumerate((10, 50, 100, 500, 1000, 10000)):
+        #matplotlib.rcParams.update({'font.size': 8})
+        scale = 4
+        #fig, ax = plt.subplots(figsize=((scale*1.61803398875, scale)))
+        fig, ax = plt.subplots(figsize=((scale*2, scale)))
+        #ax = plt.subplot(3, 2, i+1)
+        ax.plot(t, np.sum(W[:n,:], axis=0), color='black', lw=.8)
+        #ax.set_ylim([1.1*m, 1.1*M])
+        ax.set_title('n=%d' % n)
+        ax.set_yticks([])
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["bottom"].set_bounds((0, 1))
+        plt.tight_layout()
+        plt.savefig('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/sim_KL/fig%d.png' % n, dpi=400, transparent=True)
+        #plt.show()
+
+def background():
+    N = 10000
+    K = 3
+    #np.random.seed(124) 609 868 881 339 2 137 510 61
+    for seed in [609, 868, 881, 339, 2, 137, 510, 61]: #np.random.randint(1000, size=20):
+        print(seed)
+        np.random.seed(seed)
+        Z = np.random.normal(size=(N,K))
+        W = np.cumsum(Z, axis=0)
+        scale=5
+        fig, ax = plt.subplots(figsize=((scale*1.61803398875, scale)))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.spines["top"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.plot(W, lw=.8)
+        plt.savefig('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/prez_bg/fig%d.png' % seed, dpi=800, transparent=True)
+        #plt.show()
+
+def pollen_particles():
+    rng = default_rng()
+    #xlim = 1.61803398875
+    xlim = 1
+    ylim = 1
+    N = 500
+    K = 100
+    T = .001
+    dt = T / N
+    X1 = rng.standard_normal((N, K))
+    X2 = rng.standard_normal((N, K))
+    W1 = np.zeros((N+1, K))
+    W2 = np.zeros((N+1, K))
+    #W1[0] = rng.uniform(-xlim, xlim, size=K)
+    #W2[0] = rng.uniform(-ylim, ylim, size=K)
+    W1[0] = np.random.normal(0, .3, size=K)
+    W2[0] = np.random.normal(0, .3, size=K)
+    W1[1:] = W1[0,None] + np.cumsum(X1, axis=0) * np.sqrt(dt)
+    W2[1:] = W2[0,None] + np.cumsum(X2, axis=0) * np.sqrt(dt)
+    #for n in range(N):
+    #    W1[n+1] = np.where(np.abs(W1[n] + np.sqrt(dt)*X1[n]) < xlim, W1[n] + np.sqrt(dt)*X1[n], W1[n] - np.sqrt(dt)*X1[n])
+    #    W2[n+1] = np.where(np.abs(W2[n] + np.sqrt(dt)*X2[n]) < ylim, W2[n] + np.sqrt(dt)*X2[n], W2[n] - np.sqrt(dt)*X2[n])
+    #W1 = np.sqrt(dt) * W1
+    #W2 = np.sqrt(dt) * W2
+
+    scale = 7
+    
+
+    #plt.figure(figsize=((scale*xlim, scale*ylim)))
+    fig, ax = plt.subplots(figsize=((scale*xlim, scale*ylim)))
+    #fig.patch.set_facecolor('lightsteelblue')
+    #points = plt.plot([], [], '.', color='khaki')[0]
+
+    mec = matplotlib.colors.colorConverter.to_rgba('ghostwhite', alpha=.5)
+    fig.patch.set_facecolor('lightgray')
+    points = plt.plot([], [], '.', markersize=14, markerfacecolor='grey',
+             markeredgewidth=3, markeredgecolor=mec)[0]
+    #points = ax.scatter([], [], s=(50*i*(z*.9+.1))**2, color=(0,0,0,.5/i/10))
+    #lines = []
+    #colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    #for k in range(K):
+        #lines.append(plt.plot([], [], color=colors[k], lw=0.2)[0])
+    a = 1
+    plt.xlim([-a*xlim, a*xlim])
+    plt.ylim([-a*ylim, a*ylim])
+    plt.axis('off')
+
+    def init():
+        points.set_data([], [])
+        return (points,)
+
+    def animate(i):
+        points.set_data(W1[i], W2[i])
+        return (points,)
+
+    #for n in range(N):
+    #    points.set_data(W1[n], W2[n])
+        #for k in range(K):
+        #    lines[k].set_data(W1[:n, k], W2[:n, k])
+    #    plt.pause(0.01)
+    anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               frames=N, interval=20, blit=True)
+    plt.tight_layout()
+    plt.show()
+    #anim.save('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/pollen.gif', fps=30)
+
+def KL_anim(N=5000, T=1):
+    npr.seed(271)
+    t = np.linspace(0, T, N)
+    k = (2*np.arange(N) + 1)[:,None]
+    Z = npr.normal(size=(N,1))
+    phi = 2*np.sqrt(2*T)*np.sin(k*np.pi*t[None,:]/(2*T))/(k*np.pi)
+    W = Z * phi
+    #plt.figure(figsize=(20,10))
+    
+    scale = 4
+    #fig, ax = plt.subplots(figsize=((scale*1.61803398875, scale)))
+    fig, ax = plt.subplots(figsize=((scale*2, scale)))
+    line = plt.plot([],[], lw=0.7)[0]
+    text = plt.text(0.8, 0.3, '', fontweight='bold', bbox=dict(facecolor='gold', alpha=0.5))
+    plt.xlim([0,T])
+    plt.ylim([-2, 0.5])
+
+    def init():
+        line.set_data([], [])
+        text.set_text('')
+        return line,
+    
+    def animate(i):
+        #c = np.log(N) / N
+        #n = int(np.exp(c*i))
+        n = i**2 // 1000
+        line.set_data(t, np.sum(W[:n,:], axis=0))
+        text.set_text('n = %s' % n)
+        return line, text
+
+
+    #for i in range(1, N):
+    #    line.set_data(t, np.sum(W[:i,:], axis=0))
+    #    text.set_text('n = %s' % i)
+    #    plt.pause(1/i)
+
+    anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               frames=N, interval=10, blit=True)
+    plt.tight_layout()
+    plt.show()
+
+def brownian_particles():
+    rng = default_rng()
+    xlim = 16 / 9 #1.61803398875
+    ylim = 1
+    N = 1500
+    K = 8
+    T = 0.2
+    dt = T / N
+    X1 = rng.standard_normal((N, K))
+    X2 = rng.standard_normal((N, K))
+    W1 = np.zeros((N+1, K))
+    W2 = np.zeros((N+1, K))
+    #W1[0] = rng.uniform(-xlim, xlim, size=K)
+    #W2[0] = rng.uniform(-ylim, ylim, size=K)
+    W1[0] = np.array([-.8*xlim, 0, .8*xlim, .8*xlim, .8*xlim, 0, -.8*xlim, -.8*xlim])
+    W2[0] = np.array([.8*ylim, .8*ylim, .8*ylim, 0, -.8*ylim, -.8*ylim, -.8*ylim, 0])
+    
+    for n in range(N):
+        W1[n+1] = np.where(np.abs(W1[n] + np.sqrt(dt)*X1[n]) < xlim, W1[n] + np.sqrt(dt)*X1[n], W1[n] - np.sqrt(dt)*X1[n])
+        W2[n+1] = np.where(np.abs(W2[n] + np.sqrt(dt)*X2[n]) < ylim, W2[n] + np.sqrt(dt)*X2[n], W2[n] - np.sqrt(dt)*X2[n])
+    #W1 = np.sqrt(dt) * W1
+    #W2 = np.sqrt(dt) * W2
+
+    scale = 5
+    #plt.style.use('dark_background')
+
+    fig, ax = plt.subplots(figsize=((scale*xlim, scale*ylim)), facecolor=(248/255,246/255,241/255,0))
+    #points = plt.plot([], [], '.')[0]
+    #lines = []
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    #for k in range(K):
+    #    lines.append(plt.plot([], [], color=colors[k], lw=0.3)[0])
+
+    plot_elements = []#[plt.plot([], [], '.')[0]]
+    for k in range(K):
+        plot_elements.append(plt.plot([], [],'.', color=colors[k])[0])
+        plot_elements.append(plt.plot([], [], color=colors[k], lw=0.4)[0])
+    
+    a = 1
+    plt.xlim([-a*xlim, a*xlim])
+    plt.ylim([-a*ylim, a*ylim])
+    plt.axis('off')
+    #for n in range(N):
+    #    points.set_data(W1[n], W2[n])
+    #    for k in range(K):
+    #        lines[k].set_data(W1[:n, k], W2[:n, k])
+    #    plt.pause(0.01)
+
+    def init():
+        #points.set_data([], [])
+        #for k in range(K):
+        #    lines[k].set_data([], [])
+        for k in range(2*K):
+            plot_elements[k].set_data([],[])
+        return plot_elements #points, lines
+
+    def animate(i):
+        #points.set_data(W1[i], W2[i])
+        #for k in range(K):
+        #    lines[k].set_data(W1[:i, k], W2[:i, k])
+        #plot_elements[0].set_data(W1[i], W2[i])
+        for k in range(K):
+            plot_elements[2*k].set_data(W1[i, k], W2[i, k])
+            plot_elements[2*k+1].set_data(W1[:i, k], W2[:i, k])
+        #for k in range(K):
+        #    plot_elements[k+1].set_data(W1[:i, k], W2[:i, k])
+        return plot_elements #points,#lines
+
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=N, interval=20, blit=True)
+    plt.tight_layout()
+    #plt.show()
+    anim.save('/Users/aleksandercs/Documents/INSA/GMM4/Semestre2/Projet/particle.gif', writer='imagemagick', fps=30)
+
+brownian_particles()
